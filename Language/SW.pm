@@ -15,6 +15,7 @@ use strict;
 use vars qw($VERSION %LANG_HASH);
 $VERSION = '0.01';
 
+use Data::Dumper;
 use Apache::Language::Constants;
 use I18N::LangTags qw(is_language_tag similarity_language_tag same_language_tag);
 
@@ -44,8 +45,8 @@ sub initialize {
             my ($self, $data, $cfg) = @_;
             #did we already decline on this combination ?
             return L_DECLINED if (exists $cfg->{no_good}); 
-
-            if(not exists $cfg->{DATA})
+      
+            if(not defined $cfg->{DATA})
                {  #this is done once per server process.
                   my $pkg = $data->package;
                   warning("Language:: Initializing $pkg",3);
@@ -65,7 +66,6 @@ sub initialize {
                
                #This is done once per request (It will not change in the same page)
                $cfg->{Wanted_Languages} = wanted_languages(${$data->extra_args}[0]);
-    
 return L_OK;
 }
 
@@ -107,8 +107,8 @@ sub getLanguagePicker {
    #this is to get at the first argument we passed the new method
    my $itself = ${$data->extra_args}[0];
    
-   #figure out what's the language being currently served
-   my $current_lang = ${$cfg->{Wanted_Languages}}[0] || ${$data->lang()}[0];
+   #figure out what's the language being currently served ( we should check the default languages also
+   my $current_lang = ${$cfg->{Wanted_Languages}}[0] || ${$data->lang()}[0] || 'en' ;
    
    #create 2 lists, of 2-letters languages codes and their expanded versions
    my @variant;
@@ -120,14 +120,11 @@ sub getLanguagePicker {
       }
    
    #find out what type of panel we need to create
-   my $panel_type = $arg ? "SW::Panel::FormPanel" :"SW::Panel::HTMLPanel" ;
-
+   my $panel_type = $arg ? "SW::Panel::HTMLPanel" :"SW::Panel::FormPanel" ;
    
+
    my $LangPanel = new $panel_type($itself, {
-                           -bgColor    => "000000",
-                           -name       => "langPanel",
-                           -align		=> "right",
-                           -height		=> "1% ",
+                           -name       => $arg || "langPanel",
                            });
    #Add a pull-down list
    $LangPanel->addElement(0,0, new SW::GUIElement::SelectBox($itself, {
@@ -135,13 +132,12 @@ sub getLanguagePicker {
                            -options    => \@variant_list,
                            -values     => \@variant,
                            -selected   => $current_lang,
-                           -width      => "1% ",
+                           -action     => $arg,
                            }));
                      
    #And the Go button                  
    $LangPanel->addElement(1,0, new SW::GUIElement::Button($itself, {
                            -text   	   => "GO",
-                           -width		=> "1% ",
                            }));
                    
 #throw back the resulting panel                
@@ -159,15 +155,32 @@ sub wanted_languages {
    #we should hook into the user preferences in here.
    #and the merging could be a bit better
    my $i=0;
-   foreach my $lang ((split /,/, $itself->getDataValue("Lang")), (split /,/, $itself->getSessionValue("Lang")))
-      {
-      $langh{$lang} ||= $i--;
-      }
-   #sort them by preference
-   @language_list = sort {$langh{$b} <=> $langh{$a}} keys %langh;
-   #add any forced languages before everything else
-   unshift @language_list, @ { $cfg->{LanguageForced}} if defined $cfg->{LanguageForced};
    
+   #let's see if something changed ?
+   my $data = $itself->getDataValue("Lang");
+   
+   if($data)
+      {   
+      $itself->deleteDataValue("Lang");
+      
+      #this is a placeholder to correctly merge different language lists when user prefs are avaliable
+      #foreach my $lang ((split /,/, $data),(split /,/, $data))
+       #  {
+       #  $langh{$lang} ||= $i--; #
+       #  }
+      #sort them by preference
+      #@language_list = sort {$langh{$b} <=> $langh{$a}} keys %langh;
+      
+      @language_list = split /,/, $data;
+      #add any forced languages before everything else
+      unshift @language_list, @ { $cfg->{LanguageForced}} if defined $cfg->{LanguageForced};
+      $itself->setSessionValue("Lang", join ',', @language_list );     
+      }
+   else
+      { 
+      @language_list = split /,/, $itself->getSessionValue("Lang");
+      }
+     
 return \@language_list;
 }
 
@@ -221,7 +234,12 @@ Apache::Language::SW - LanguageHandler for SmartWorker Applications
       [...]
       -text => $self->{Language}{"keyName1"},
       [...]
+      
+      #outside a FormPanel
       $Panel->addElement(x,y,$self->{Language}->getLanguagePicker());
+      
+      #inside a FormPanel
+      $Panel->addElement(x,y,$self->{Language}->getLanguagePicker("formPanel1));
       [...]
       
 
@@ -238,15 +256,19 @@ The only restriction with this module is that it uses the 'Lang' key to find
 wanted languages.  So it sets it in the Session/Data stuff.  So don't do this:
 
   $self->{Lang} = "I love perl";
+  or
+  $self->setSessionValue("Lang","I love perl");
+  ok ?
+  
   
 But you can look at it if you want to know what language are requested by the user,
 but I advise against it.
 
 =head1 METHODS
 
-  getLanguagePicker - Returns a panel with a correct language picker for the current user. 
+  getLanguagePicker - Returns a formpanel with a correct language picker for the current user. 
   
-  Arguments : call it with a true argument when outside form context.
+  Arguments : if already in form context, call it with the name of the formpanel you are adding it to.
 
 =head1 AUTHOR
 

@@ -12,7 +12,7 @@ use Data::Dumper;
 use I18N::LangTags qw(is_language_tag similarity_language_tag same_language_tag);
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.04';
+$VERSION = '0.05';
 $DEBUG=0;
 
 $DEFAULT_HANDLER =  __PACKAGE__ . "::PlainFile";
@@ -170,7 +170,6 @@ sub TIEHASH {
     $CACHE{$package}{Request} = $r;
     $CACHE{$package}{Config} = $cfg;
     $CACHE{$package}{Lang} = get_lang($r, $cfg);
-    warn "Extra_Args gets assigned again";
     $CACHE{$package}{Extra_Args} = [@extra_args];
     
     return $CACHE{$package};
@@ -304,7 +303,7 @@ sub AUTOLOAD {
          my $conthash = $untiedself->{$container}{DATA};
          return $container->$name($untiedself, $conthash, @_) if ($container->can($name));
          }
-      warn "No $name defined in any LanguageHandlers, sorry.";
+      warning( "No $name defined in any LanguageHandlers, sorry.",1);
       return undef;
 }
 
