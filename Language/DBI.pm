@@ -3,7 +3,7 @@ use Apache::Language::Constants;
 use DBI;
 use vars qw($VERSION);
 
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 
 
@@ -66,6 +66,7 @@ sub initialize {
             my ($self, $data, $cfg) = @_;
             my $r = $data->{Request};
             
+			my $dbhfunc = $r->dir_config("Language::DBI::GetDBFunc");
             my $Datasource = $r->dir_config("Language::DBI::Datasource") || "DBI:Pg:dbname=apache;host=herge";
             my $username = $r->dir_config("Language::DBI::Username") || 'apache';
             my $password = $r->dir_config("Language::DBI::Password") || 'www';
@@ -75,7 +76,18 @@ sub initialize {
 				$cfg->{lang} 		= $r->dir_config("Language::DBI::TableLang") || 'lang';
 				$cfg->{value} 		= $r->dir_config("Language::DBI::TableValue") || 'value';
             
-            if ($cfg->{dbh} = DBI->connect($Datasource, $username, $password)){
+            if ($dbhfunc)
+				{
+				no strict 'refs';
+				$cfg->{dbh} = &$dbhfunc();
+				use strict 'refs';
+				}
+			else 
+				{
+				$cfg->{dbh} = DBI->connect($Datasource, $username, $password);
+				}	
+			
+			if ($cfg->{dbh}){
                 return L_OK;
                 }
             else {

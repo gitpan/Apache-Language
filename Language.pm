@@ -12,7 +12,7 @@ use Data::Dumper;
 use I18N::LangTags qw(is_language_tag similarity_language_tag same_language_tag);
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.09';
+$VERSION = '0.11';
 $DEBUG=0;
 
 $DEFAULT_HANDLER =  __PACKAGE__ . "::PlainFile";
@@ -54,16 +54,24 @@ sub NEXTKEY {
 sub FETCH {
     my ($self, $key, $test) = @_;
     warning("FETCH($key)",L_TRACE);
-    $key =~ m|^([^/]*)(/(.*))?$|;
+    #$key =~ m|^([^/]*)(/(.*))?$|;
+    
+    $key =~ m{^(([^\\/]|\\/|\\)*)/?(.*)$};
+    $key = $1;
+    my $lang = $3;
+    
+    $key =~ s|\\/|/|g;
+
+
     my $value;
     foreach my $container (@ {$self->{Handlers}}){
         warning("${container}::fetch($key)",L_MAX);
         my $conthash = $self->{$container}{DATA};
-        $value ||= $container->fetch($self,$conthash,$1,$3);
+        $value ||= $container->fetch($self,$conthash,$key,$lang);
         #Configurable default language/s
-        if (not defined $3 and not defined $value){
+        if (not defined $lang and not defined $value){
             foreach my $default (@ {$self->{Config}{LanguageDefault}}){
-                $value ||= $container->fetch($self,$conthash,$1,$default);
+                $value ||= $container->fetch($self,$conthash,$key,$default);
                 last if $value;
                 }
             }

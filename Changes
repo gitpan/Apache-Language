@@ -1,4 +1,9 @@
 Revision history for Perl extension Apache::Language.
+0.10  Thu Dec  2 13:44:04 EST 1999
+
+	- mostly bug fixes in the exist codes
+	- added a new argument to give a function name to get the DB Handle
+
 0.07  Sat Oct 23 17:32:06 EDT 1999
 
 	- cpan chocked on 0.06 so this is the same thing

@@ -7,7 +7,7 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..4\n";  }
+BEGIN { $| = 1; print "1..3\n";  }
 END {print "not ok 1\n" unless $loaded;}
 use Apache::Language;
 $loaded = 1;
@@ -15,7 +15,7 @@ print "ok 1\n";
 
 
 my $i=2;
-foreach my $handler   ('SW', 'PlainFile','DBI')
+foreach my $handler   ('PlainFile','DBI')
 	{
 	eval "use Apache::Language::$handler";
 	print "not " if($@);
