@@ -1,4 +1,9 @@
 Revision history for Perl extension Apache::Language.
+0.12  Mon Feb 28 16:31:27 EST 2000
+
+	- added a new DBfunc PerlVar to give the full name of a function that
+	  returns a database handle in Language::DBI
+
 0.10  Thu Dec  2 13:44:04 EST 1999
 
 	- mostly bug fixes in the exist codes
