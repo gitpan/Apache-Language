@@ -1,4 +1,7 @@
 Revision history for Perl extension Apache::Language.
+0.14  Fri Jul 21 16:49:35 EDT 2000
+	- stupid debugging message left behind
+
 0.13  Fri Jul 21 13:28:48 EDT 2000
 
 	- added new configuration options for debugging

@@ -12,10 +12,10 @@ use Data::Dumper;
 use I18N::LangTags qw(is_language_tag similarity_language_tag same_language_tag);
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.13';
+$VERSION = '0.14';
 $DEBUG=0;
 
-print STDERR "Apache::Language $VERSION (gozer-devel) loaded\n";
+#print STDERR "Apache::Language $VERSION (gozer-devel) loaded\n";
 
 $DEFAULT_HANDLER =  __PACKAGE__ . "::PlainFile";
 eval "use $DEFAULT_HANDLER";
