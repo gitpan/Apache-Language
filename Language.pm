@@ -12,7 +12,7 @@ use Data::Dumper;
 use I18N::LangTags qw(is_language_tag similarity_language_tag same_language_tag);
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.06';
+$VERSION = '0.07';
 $DEBUG=0;
 
 $DEFAULT_HANDLER =  __PACKAGE__ . "::PlainFile";
