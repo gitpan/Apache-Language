@@ -1,0 +1,137 @@
+NAME
+    Apache::Language - Perl transparent language support for Apache
+    modules and mod_perl scripts
+
+SYNOPSIS
+      In YourModule.pm:
+      
+      sub handler {
+      my $r = shift;
+      use Apache::Language;
+      my $lang = Apache::Language->new($r);
+      #$lang is now a hash ref that will automacigally pick the right language
+      
+      print $lang->{'Error01'} if exists $lang->{'Error01'};
+      
+      foreach ( keys %$lang ){
+        print "$_ is " . $lang->{$_};
+        }
+      
+      [...]
+      }
+
+DESCRIPTION
+    The goal of this module is to provide a simple way for mod_perl
+    module writers to include support for multiple language
+    requests.
+
+    This is version 0.03, and it's a complete rewrite from the
+    ground-up of the previous release. It's still backward-
+    compatible with the other releases, but now it's much more
+    advanced.
+
+    An Apache::Language object acts like a language-aware hash. It
+    stores key/language/values triplets. Using the Accept-Language:
+    field sent by the web-client, it can pick the best fit language
+    for that specific client. It's usage is transparent and should
+    prove to be quite convenient (and hopefully, efficient).
+
+    The method used to store/fetch information is now completely
+    modular and will allow easy creation of new storage methods thru
+    a simple API (see the API section).
+
+  BASIC USAGE EXAPMLE
+
+    This section will describe the easiest way to start using
+    Apache::Language.
+
+    Apache::Language is used to create a hash that will contain
+    key/language/value triplets. Say you are building a module that
+    prints a few error messages, but since your users speak 3
+    different languages, you'd like your module to be nice to them
+    and print the messages in their native language.
+
+    For this approach to work, a few things are needed. First, the
+    client software (Netscape/IE/lynx, etc.) should send an Accept-
+    Language: header telling the webserver what languages it's user
+    understands. This might sound simple, but as a web-surfer, did
+    you set that language setting in your browser? Most likely, you
+    didn't. So the first step is to correctly configure your browser
+    and try to make sure your users/visitors will have done the
+    same, or they might not get what you want them to read.
+
+    Secondly, you must store the messages you want to display in
+    each avaliable languages. For this example, we will use the
+    default LanguageHandler Apache::Language::PlainFile that ships
+    with this distribution. To do that, suppose your module is named
+    Apache::MyModule and it's stored in a file named MyModule.pm.
+    You will only need to edit a file named MyModule.dic in the same
+    place your module is stored. The format of that file is : (for
+    more information see the Apache::Language::PlainFile
+    manpage(3)).
+
+     error01:en
+
+     Error Message 01
+
+     error01:fr
+
+     Message d'erreur 01
+
+     error02:en
+
+     Error Message 02
+
+    Once that file contains your error messages, you're all set.
+    Just add this to the top of your module:
+
+     use Apache::Language
+     my $lang = Apache::Language::new($r)
+
+    Then $lang will be a language-enabled hash reference that you
+    can use like this:
+
+     print $lang->{error01}
+
+    That line will print your error message 01 in the best language
+    for the client that your module served. Of course, there are a
+    lot more things you can do with Apache::Language. All these
+    features are explained below.
+
+TODO
+    * Find and correct bugs.
+    * Find new features to add.
+
+SEE ALSO
+    perl(1), the Apache manpage(3), the Apache::Language::Constants
+    manpage(3), and all the Apache::Language::* manpage.
+
+SUPPORT
+    Please send any questions or comments to the Apache modperl
+    mailing list <modperl@apache.org> or to me at
+    <gozer@ectoplasm.dyndns.com>
+
+NOTES
+    This code was made possible by :
+
+    *   Doug MacEachern <dougm@pobox.com> Creator of mod_perl. That
+        should mean enough.
+
+    *   Andreas Koenig <koenig@kulturbox.de> The one I got the idea from
+        in the first place.
+
+    *   The mod_perl mailing-list at <modperl@apache.org> for all your
+        mod_perl related problems.
+
+AUTHOR
+    Philippe M. Chiasson <gozer@ectoplasm.dyndns.com>
+
+VERSION
+    This is revision $Id: Language.pod,v 1.2 1999/04/18 22:02:37
+    gozer Exp $
+
+COPYRIGHT
+    Copyright (c) 1999 Philippe M. Chiasson. All rights reserved.
+    This program is free software, you can redistribute it and/or
+    modify it under the same terms as Perl itself.
+
