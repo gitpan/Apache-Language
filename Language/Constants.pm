@@ -40,7 +40,7 @@ sub warning {
     my ($caller,$filename,$line) = caller;
    #This one should be working...
     #my $debug = ${$caller::DEBUG};
-    my $debug = eval "\$" . $caller . "::DEBUG";
+    my $debug = eval "\$" . $caller . "::DEBUG"; #"
     
     return if L_QUIET == $debug;
     if (not defined $level or $debug >= $level){

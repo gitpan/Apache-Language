@@ -1,4 +1,13 @@
 Revision history for Perl extension Apache::Language.
+0.13  Fri Jul 21 13:28:48 EDT 2000
+
+	- added new configuration options for debugging
+	  Prefix
+	  Postfix
+	  NotFoundPrefix
+	  NotFoundPostfix
+	
+
 0.12  Mon Feb 28 16:31:27 EST 2000
 
 	- added a new DBfunc PerlVar to give the full name of a function that

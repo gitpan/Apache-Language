@@ -3,7 +3,7 @@ package Apache::Language;
 
 use strict;
 use DynaLoader ();
-use vars qw(%CACHE $VERSION @ISA $DEBUG $DEFAULT_HANDLER $AUTOLOAD);
+use vars qw(%CACHE $VERSION @ISA $DEBUG $DEFAULT_HANDLER $AUTOLOAD %DEBUG);
 
 use Apache::Language::Constants;
 use Apache::ModuleConfig;
@@ -12,8 +12,10 @@ use Data::Dumper;
 use I18N::LangTags qw(is_language_tag similarity_language_tag same_language_tag);
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.12';
+$VERSION = '0.13';
 $DEBUG=0;
+
+print STDERR "Apache::Language $VERSION (gozer-devel) loaded\n";
 
 $DEFAULT_HANDLER =  __PACKAGE__ . "::PlainFile";
 eval "use $DEFAULT_HANDLER";
@@ -77,10 +79,25 @@ sub FETCH {
             }
         last if $value;
         }
-    return $value if $value;
+		
+	if($value)
+		{
+			$value = $DEBUG{prefix} . $value if(exists $DEBUG{prefix});
+			$value = $value . $DEBUG{postfix} if(exists $DEBUG{postfix});
+			return $value;
+		}
+    elsif($test) #we didn't find any match.  If testing, return undef, else return at least the key
+		{
+			return undef;
+		}
+	else      
+		{
+		$key = $DEBUG{notfoundprefix} . $key if(exists $DEBUG{notfoundprefix});
+		$key = $key . $DEBUG{notfoundpostfix} if(exists $DEBUG{notfoundpostfix});
+		return $key;	
+		}
 
-    #we didn't find any match.  If testing, return undef, else return at least the key
-	return $test ? undef : $key;
+
     }
 
 sub STORE {
@@ -471,9 +488,31 @@ sub LanguageDefault($$@) {
 return OK;
 }
 
+#LanguageDebug
+# NotFoundPrefix=--> 
+# NotFoundPostfix=<-- 
+# Prefix=']'
+# Postfix=']'
+# Verbose=digit
+
 sub LanguageDebug($$$) {
     my ($cfg, $parms, $debug) = @_;
-    $DEBUG = $debug;
+
+	#print STDERR "LanguageDebug ($debug)\n";
+
+	if($debug =~ /\d+/)
+		{
+    	$DEBUG = $debug;
+		print STDERR "Debug level set to $debug\n";
+		}
+		
+	elsif($debug =~ /(\w+)\s*=\s*(.+)/)
+		{
+		my ($cmd,$value) = ($1,$2);
+		#print STDERR "Read ($cmd,$value)\n";
+		$DEBUG{lc $cmd} = $value;
+		}
+			
     return OK;
 }
 

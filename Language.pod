@@ -151,6 +151,15 @@ will be used to set the default languages
 This will set the level of debugging information sent to the apachelog.  Values ranges from 0-4. 4 being B<very> noisy
 and 0 very quiet.  0 will still warn you about fatal errors.  A setting of -1 simply doesn't log anything. Nothing.
 
+There are also a few other debugging options avaliable
+
+LanguageDebug Prefix=(
+LanguageDebug Postfix=)
+LanguageDebug NotFoundPrefix=[[[
+LanguageDebug NotFoundPostfix=]]]
+
+They will prefix/postfix language tokens with the specified delimiters with special symbols, usefull for debugging
+
 =back
 
 =head1 STATUS Handler
