@@ -9,7 +9,7 @@ Apache::Language - Perl transparent language support for Apache modules and mod_
   sub handler {
   my $r = shift;
   use Apache::Language;
-  my $lang = Apache::Language->new($r);
+  my $lang = Apache::Language->new($extra_args);
   #$lang is now a hash ref that will automacigally pick the right language
   
   print $lang->{'Error01'} if exists $lang->{'Error01'};
@@ -38,7 +38,7 @@ to be quite convenient (and hopefully, efficient).
 The method used to store/fetch information is now completely modular and will allow
 easy creation of new storage methods thru a simple API (see the API section).
 
-=head2 BASIC USAGE EXAPMLE
+=head2 BASIC USAGE EXAMPLE
 
 This section will describe the easiest way to start using Apache::Language.
 
@@ -73,7 +73,7 @@ L<Apache::Language::PlainFile>(3)).
 Once that file contains your error messages, you're all set.  Just add this to the top of your module:
 
  use Apache::Language
- my $lang = Apache::Language::new($r)
+ my $lang = Apache::Language::new($extra_args)
 
 Then $lang will be a language-enabled hash reference that you can use like this:
 
@@ -301,6 +301,11 @@ returns the name of the package handling the request
 
 returns the filename of the package handling the request
 
+=item extra_args()
+
+returns a reference to a list of what was passed to the new constructor
+
+
 =back
 
 B<$cfg>
@@ -339,7 +344,14 @@ $data->lang will return the list of language the client understands, sorted pref
 for variants and dialects, it's now always easy for a module to determine what language it should pick if it knows 'en-us' and 'en' 
 and the clients understands 'en-ca' and 'de'.  
 
-To simplyfy this, there is the helper function $data->best_lang described below.
+=item Everything else
+
+If a call is made to an unknown routine, Apache::Language will try to call it on each Handler in the current
+handler stack until someone can deal with that function call.  The call is made with ($data, $cfg, @args) as arguments.
+@args being the arguments passed to that function by the calling user.  Remember that to get at the new() arguments,
+you just have to do a @args = @{$data->extra_args()};
+
+To simplyfy some things, there is the helper function $data->best_lang described below.
 
 =back
 
@@ -381,7 +393,6 @@ store ($data, $cfg ,$key, $lang, $value)
 If this function is present, the handler will be makred as 'storable' and any assignments to the language
 hash will call this function.  Storing in a language hash should be done by providing a key/language pair as
 key to the hash (ie. $lang->{key01/en-us} = "string").  This should return L_OK on success and L_ERROR in case of an error.
-
 
 =head2 Optionnal API Functions (firstkey/nextkey)
 

@@ -3,7 +3,7 @@ package Apache::Language;
 
 use strict;
 use DynaLoader ();
-use vars qw(%CACHE $VERSION @ISA $DEBUG $DEFAULT_HANDLER);
+use vars qw(%CACHE $VERSION @ISA $DEBUG $DEFAULT_HANDLER $AUTOLOAD);
 
 use Apache::Language::Constants;
 use Apache::ModuleConfig;
@@ -12,7 +12,7 @@ use Data::Dumper;
 use I18N::LangTags qw(is_language_tag similarity_language_tag same_language_tag);
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.03';
+$VERSION = '0.04';
 $DEBUG=0;
 
 $DEFAULT_HANDLER =  __PACKAGE__ . "::PlainFile";
@@ -70,7 +70,7 @@ sub FETCH {
         last if $value;
         }
     return $value if $value;
-    return "[<I>No Language definition found for $key</I>]";
+    return "[<I><SMALL>No Language definition found for $key</SMALL></I>]";
     }
 
 sub STORE {
@@ -83,7 +83,6 @@ sub STORE {
         next unless $self->{$container}{storable};
         warning("STORE needs a language specification to work") unless defined $3;
         $result = $container->store($self,$conthash,$1,$3,$value);
-        #warn "Called $container" . "->store($self,$conthash,$1,$3,$value) return $result";
         last if (L_OK == $result);
         }
     return $result;
@@ -97,10 +96,13 @@ sub EXISTS {
     }
 
 sub TIEHASH {
-    my ($class, $r, $package, $filename) = @_;
+    my $class = shift;
+    my $r = shift;
+    my $package = shift;
+    my $filename = shift;
+    my @extra_args = @_;
     unless (defined $package) {
         die __PACKAGE__ . " can't be directly tied to, try the new() function instead";
-        #($package, $filename) = caller;
         }
     my $cfg = Apache::ModuleConfig->get($r);
     my $modified=1;
@@ -110,6 +112,7 @@ sub TIEHASH {
         $modified = 0;
         $CACHE{$package}{Request} = $r;
         $CACHE{$package}{Config} = $cfg;
+        $CACHE{$package}{Extra_Args} = [@extra_args];
         foreach my $handler (@ {$CACHE{$package}{Handlers}}){
             if ($handler->modified($CACHE{$package},$CACHE{$package}{$handler}{DATA})){
                 warning("re-init on $handler/$package");
@@ -137,6 +140,7 @@ sub TIEHASH {
         push @handler_list, $DEFAULT_HANDLER ;
         $CACHE{$package}{Request} = $r;
         $CACHE{$package}{Config} = $cfg;
+        $CACHE{$package}{Extra_Args} = [@extra_args];
         foreach my $container (@handler_list)
             {
             if ($container->can('initialize')){
@@ -166,6 +170,9 @@ sub TIEHASH {
     $CACHE{$package}{Request} = $r;
     $CACHE{$package}{Config} = $cfg;
     $CACHE{$package}{Lang} = get_lang($r, $cfg);
+    warn "Extra_Args gets assigned again";
+    $CACHE{$package}{Extra_Args} = [@extra_args];
+    
     return $CACHE{$package};
 }
 
@@ -174,7 +181,7 @@ sub TIEHASH {
 sub get_lang {
 	#What language this request should be served with ?
 	my ($r, $cfg) = @_;
-    my %args = $r->args;
+   my %args = $r->args;
 	my $value = 1;	
 	my %pairs;
 	foreach (split(/,/, $r->header_in("Accept-Language"))){
@@ -198,13 +205,13 @@ sub get_lang {
 return \@language_list;
 }
 
-
 #CLASS METHODS
 sub new {
-    my ($class, $r) = @_;
+    my $class = shift;
+    my $r = Apache->request;
     my ($package, $filename, $line) = caller;
     my $hash = {};
-    tie (%$hash, __PACKAGE__, $r, $package, $filename);
+    tie (%$hash, __PACKAGE__, $r, $package, $filename, @_);  
     return bless $hash, $class;
     }  
 
@@ -218,13 +225,18 @@ sub message {
 sub lang {
     my $self = shift;
     $self = tied %$self if tied %$self;
-    return @{$self->{Lang}};
+    return $self->{Lang};
     }
 #returns Apache $r
 sub request {
     my $self = shift;
     $self = tied %$self if tied %$self;
     return $self->{Request};
+    }
+sub extra_args {
+    my $self = shift;
+    $self = tied %$self if tied %$self;
+    return $self->{Extra_Args};
     }
 #returns the handler stack
 sub handlers {
@@ -255,11 +267,6 @@ sub dump {
     print "</PRE>";
     }
 
-#Issue a nice looking warning
-#warning ("Message",debug_level);
-#unconditionnal if no debug level is specified
-
-
 #given an ordered list of knowns languages, returns the best language 
 #choice according to the client request
 #Called mostly by LanguageHandlers to figure out what language to pick
@@ -283,6 +290,23 @@ sub best_lang {
     return $language;
 }
 
+sub AUTOLOAD {
+      my $self = shift;
+      my $untiedself = tied %$self if tied %$self;
+      my $name = $AUTOLOAD;
+      return if $name =~ /::DESTROY$/;
+      
+      my $type = ref($self) || die "$self is not an object";
+      
+      $name =~ s/.*://;
+      
+      foreach my $container (@ {$untiedself->{Handlers}}){
+         my $conthash = $untiedself->{$container}{DATA};
+         return $container->$name($untiedself, $conthash, @_) if ($container->can($name));
+         }
+      warn "No $name defined in any LanguageHandlers, sorry.";
+      return undef;
+}
 
 
 #TEST HANDLER

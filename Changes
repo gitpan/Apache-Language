@@ -1,5 +1,11 @@
 Revision history for Perl extension Apache::Language.
 
+0.04  Thu Sep  9 11:37:36 EDT 1999
+	- added the AUTOLOAD sub to give Handlers pollibility to define their own calls
+	- removed the $r arg to new and replaced it with args passed to the Handler
+	- added the Language::SW handler for SmartWorker support
+	- corrected a few little things not worth mentionnng
+
 0.02  Mon Feb 15 11:11:10 1999
 	- added TIEHASH interface and kept the old methods
 

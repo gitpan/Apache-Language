@@ -69,7 +69,7 @@ sub initialize {
             my $Datasource = $r->dir_config("Language::DBI::Datasource") || "DBI:Pg:dbname=apache;host=herge";
             my $username = $r->dir_config("Language::DBI::Username") || 'apache';
             my $password = $r->dir_config("Language::DBI::Password") || 'www';
-            $cfg->{tablename} = $r->dir_config("Language::DBI::TableName") || language;
+            $cfg->{tablename} = $r->dir_config("Language::DBI::TableName") || 'language';
             
             if ($cfg->{dbh} = DBI->connect($Datasource, $username, $password)){
                 return L_OK;

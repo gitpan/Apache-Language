@@ -38,14 +38,16 @@ sub warning {
     my ($message, $level) = @_;
     my $r = Apache->request;
     my ($caller,$filename,$line) = caller;
-    #This one should be working...
+   #This one should be working...
     #my $debug = ${$caller::DEBUG};
     my $debug = eval "\$" . $caller . "::DEBUG";
     
     return if L_QUIET == $debug;
     if (not defined $level or $debug >= $level){
-        $r->warn("[$caller ($line)] $message");
+    	my $err_msg="[$caller ($line)] $message";
+        $r ? $r->warn($err_msg) : warn($err_msg);
         }
+	return;
     }
 # Preloaded methods go here.
 
