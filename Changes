@@ -1,4 +1,6 @@
 Revision history for Perl extension Apache::Language.
+0.06  Thu Oct 21 17:01:34 EDT 1999
+	- modified Language::DBI to allow configurable fields in the DataBase
 
 0.05  Thu Sep  9 14:34:14 EDT 1999
 	- was to fast at releasing 0.04.  Fixed a few other things just me will 	know

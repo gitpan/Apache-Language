@@ -12,7 +12,7 @@ use Data::Dumper;
 use I18N::LangTags qw(is_language_tag similarity_language_tag same_language_tag);
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.05';
+$VERSION = '0.06';
 $DEBUG=0;
 
 $DEFAULT_HANDLER =  __PACKAGE__ . "::PlainFile";
@@ -115,7 +115,7 @@ sub TIEHASH {
         $CACHE{$package}{Extra_Args} = [@extra_args];
         foreach my $handler (@ {$CACHE{$package}{Handlers}}){
             if ($handler->modified($CACHE{$package},$CACHE{$package}{$handler}{DATA})){
-                warning("re-init on $handler/$package");
+                warning("re-init on $handler/$package",L_VERBOSE);
                 $handler->initialize($CACHE{$package},$CACHE{$package}{$handler}{DATA});
                 }
             }

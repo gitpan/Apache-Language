@@ -3,7 +3,7 @@ use Apache::Language::Constants;
 use DBI;
 use vars qw($VERSION);
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 
 
@@ -16,11 +16,11 @@ sub store {
     my ($class, $data, $cfg, $key, $lang, $value) = @_;
     my ($rv, $sth);
     if (fetch($class, $data, $cfg, $key, $lang)){
-        $sth = $cfg->{dbh}->prepare("update ".$cfg->{tablename}." set value=? where key=? and lang=?");
+        $sth = $cfg->{dbh}->prepare("update ".$cfg->{tablename}." set $cfg->{value}=? where $cfg->{key}=? and $cfg->{lang}=?");
         $rv = $sth->execute($value,$key,$lang);
     }
     else {
-        $sth = $cfg->{dbh}->prepare("insert into ".$cfg->{tablename}."(value,key,lang) values (?,?,?)");
+        $sth = $cfg->{dbh}->prepare("insert into ".$cfg->{tablename}."($cfg->{value},$cfg->{key},$cfg->{lang}) values (?,?,?)");
         $rv = $sth->execute($value,$key,$lang);
         }
     return L_OK if $rv;
@@ -32,7 +32,7 @@ sub fetch {
         my $sth;
         
         unless ($variant) {
-            $sth = $cfg->{dbh}->prepare("select lang from ".$cfg->{tablename}." where key=?") || return undef;
+            $sth = $cfg->{dbh}->prepare("select $cfg->{lang} from ".$cfg->{tablename}." where $cfg->{key}=?") || return undef;
             if ($sth->execute($key)){
             while (my @row = $sth->fetchrow){
                 $row[0] =~ s/\s+//;
@@ -45,14 +45,14 @@ sub fetch {
 
         return undef unless $variant;
         
-        $sth = $cfg->{dbh}->prepare("select value from ".$cfg->{tablename}." where key=? and lang=?") || return undef;
+        $sth = $cfg->{dbh}->prepare("select $cfg->{value} from ".$cfg->{tablename}." where $cfg->{key}=? and $cfg->{lang}=?") || return undef;
         $sth->execute($key,$variant);
         return $sth->fetchrow;	
 }
    
 sub firstkey {
     my ($class, $data, $cfg) = @_;
-    $cfg->{listh} = $cfg->{dbh}->prepare("select distinct key from ".$cfg->{tablename}." order by key") || return undef;
+    $cfg->{listh} = $cfg->{dbh}->prepare("select distinct $cfg->{key} from ".$cfg->{tablename}." order by $cfg->{key}") || return undef;
     return undef unless $cfg->{listh}->execute;
     return $cfg->{listh}->fetchrow;
     } 
@@ -70,6 +70,10 @@ sub initialize {
             my $username = $r->dir_config("Language::DBI::Username") || 'apache';
             my $password = $r->dir_config("Language::DBI::Password") || 'www';
             $cfg->{tablename} = $r->dir_config("Language::DBI::TableName") || 'language';
+				
+				$cfg->{key} 		= $r->dir_config("Language::DBI::TableKey") || 'key';
+				$cfg->{lang} 		= $r->dir_config("Language::DBI::TableLang") || 'lang';
+				$cfg->{value} 		= $r->dir_config("Language::DBI::TableValue") || 'value';
             
             if ($cfg->{dbh} = DBI->connect($Datasource, $username, $password)){
                 return L_OK;
@@ -93,6 +97,9 @@ Apache::Language::DBI - DBI interface for Apache::Language
  PerlSetVar Language::DBI::Username webserver
  PerlSetVar Language::DBI::Password unguessable
  PerlSetVar Language::DBI::TableName language [default]
+ Language::DBI::TableKey		key 	[column for the key]
+ Language::DBI::TableLang		lang	[column for the lang]
+ Language::DBI::TableValue 	value [column for the value]
  LanguageHandler Apache::Language::DBI
  </Location>
 
