@@ -3,3 +3,4 @@ Language.pm
 MANIFEST
 Makefile.PL
 t/test.t
+t/test.dic

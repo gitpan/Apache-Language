@@ -1,20 +1,29 @@
-#$Id: Language.pm,v 1.4 1999/02/04 03:34:06 gozer Exp $
+#$Id: Language.pm,v 1.6 1999/02/15 16:13:38 gozer Exp $
 package Apache::Language;
 
 use strict;
 use vars qw(%CACHE $VERSION %USAGE);
 use IO::File;
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 if ($ENV{'MOD_PERL'} && Apache->module('Apache::Status')) {
 		Apache::Status->menu_item('Language' => 'Apache::Language status', \&status);
 		}
+        
 
 sub new {
-	my ($class, $r) = @_;
-	my ($package, $filename, $line) = caller;
-	if ($CACHE{$package}){
+    my ($self, $r) = @_;
+    my ($package, $filename, $line) = caller;
+    $self->TIEHASH($r,$package, $filename, $line);
+}
+  
+sub TIEHASH {
+	my ($class, $r, $package, $filename, $line) = @_;
+    unless($package){
+        ($package, $filename, $line) = caller;
+        }
+    if ($CACHE{$package}){
 		#should contain more validity check on the cached data
 		}
 	else 	{
@@ -23,17 +32,20 @@ sub new {
 				Filename	=> $filename,
 				Package		=> $package
 				};
-		$filename =~ s/\.pm$/.dic/;		#Find the language file
-		if ($package =~ /^Apache::ROOT/)
-			{
-			#This is under Apache::Registry, so simply append .dic to the script name
-			$filename =~ s/^(.*)$/$1.dic/;
-			}
-	
-		local($/) = "";		#read untill empty line
-		my $fh = IO::File->new;
-		$fh->open($filename) or warn "NO Language definitions found";
 		
+
+			$filename =~ s/\.[^.]*$/.dic/;		#Find the language file
+            if ($package =~ /^Apache::ROOT/)
+				{
+				#This is under Apache::Registry, so simply append .dic to the script name
+				$filename =~ s/^(.*)$/$1.dic/;
+				}
+	
+			my $fh = IO::File->new;
+			$fh->open($filename) or warn "NO Language definitions found";
+			
+
+		local($/) = "";		#read untill empty line
 		while (<$fh>){
 			#this should be more carefully validating stuff..
 			my ($lang, $code) = /([^:]*):(\w+)/ or last;
@@ -47,11 +59,13 @@ sub new {
 			my $string = <$fh> if defined($fh) or "No string found";
 			$self->{DATA}{$lang}{$code} = $string;
 			}	
-		$fh->close;
+		#$fh->close;
 		
 		bless $self, $class;
-		$CACHE{$package} = $self;	#store newly created object for future use
-	}
+		
+        $CACHE{$package} = $self;	#store newly created object for future use
+	    
+    }
 	#now what language is requested ?
 	my $lang = $CACHE{$package}->find_lang($r);
 	
@@ -60,7 +74,13 @@ sub new {
 	return $CACHE{$package};
 	}
 
-sub message{
+sub FETCH {
+    my ($self, $message) = @_;
+    $USAGE{$self->{lang}}++;
+    return $self->{DATA}{$self->{lang}}{$message};
+    }
+
+sub message {
 	#this should be more optimal, in the case it's not called with arguments
 	my ($self, $message, @args) = @_;
 	$USAGE{$self->{lang}}++;	#Gather statistics.
@@ -103,7 +123,6 @@ sub find_lang {
 	if (!$choice) {
 		#guess not, must use the defaults then.
 		$choice = $r->dir_config("DefaultLanguage") || $self->{default_language} || 'en';
-		warn "Defaulting to $choice";
 		}	
 	
 return $choice;			
@@ -168,6 +187,17 @@ Apache::Language - Perl transparent language support for mod_perl scripts and Ap
   sub handler {
   my $r = shift;
   use Apache::Language;
+  my %lang;
+  tie %lang, Apache::Language, $r;
+  print $lang{'Error01'};
+  ...
+  }
+  
+  or without tied-interface
+  
+  sub handler {
+  my $r = shift;
+  use Apache::Language;
   my $lang = new Apache::Language ($r);
   print $lang->message('Error01');
   ...
@@ -197,29 +227,32 @@ It uses the Accept-Language: field sent by the web-client, to pick the best
 fit language for it.  It's usage is almost transparent and should prove to be
 quite convenient (and hopefully, efficient).
 
-First, to use it you need to create a Apache::Language object you'll use for
-the lifetime of your script, whenever you need to print information that might
-be presented in different languages.
+First, to use it you need to tie an Apache::Language object to a hash that you'll use for the lifetime of your script, whenever you need to print information that might be presented in different languages.
 
  my $r = shift
- my $lang = new Apache::Language ($r)
+ my %lang;
+ tie %lang, Apache::Language ,$r;
 
 The first time you call that method, a specific language definitions file is
 parsed and language-key-content pairs are generated.  That will be done only
 once per child httpd process.
 
-After that it's only a matter of calling the message method like so:
+After that it's only a matter of using the hash just like an ordinary one, like so:
 
- print $lang->message('key');
+ print $lang{'key'};
 
 That will produce the content for the key 'key' in the best fit language for
 the current request being served. That's it.
 
 Of course you need to set-up the dictionnary file for this to work.  If you are
 writing a module, simply name the file YourModule.dic and place it in the same
-place your module gets installed.  If it's a Apache::Registry script, simply add
-a .dic to the script filename and place it in the same place.  Make sure the
-webserver userid has read permission on the file.
+place your module gets installed.  
+
+=head2 Apache::Registry Scripts
+
+You can also use Apache::Language with registry scripts with almost the same ease.  The only difference is the naming of the Dictionnary file.  Since your script might not have an extension to replace with .dic, .dic is simply added after the full name of your script.
+
+=head2 Dictionnary files
 
 The format of those Dictionnary files is pretty straight-forward
 
@@ -236,21 +269,16 @@ The format of those Dictionnary files is pretty straight-forward
 Just make sure those empty lines are B<actually> empty. You should make this list
 balanced, all keys should be translated in the same languages.  If not, sometimes
 Apache::Language might not be able to find a content fitting the request at all.
+In that case, you will simply get undef back.
 
-The message request is nothing more than a call to printf, this means you can pass
-it arguments and format your content anyway you want. i.e.
+The message request was nothing more than a call to printf, and I felt it was not
+very efficient to call it on every access.  It's still there, but if you want to
+be able to insert small things into your Language-ified tokens, place a few %s in
+them and call printf yourself :-)
 
- en:Error01
+The old ->message('key') interface is still there if you want to call printf on each access.
 
- You tried to %s me and I don't think you should do %s.
-
-then call message like so:
- 
- $lang->message("Error01", "kill", "such an evil thing");
- 
-Simple, and not as efficient as it could be, I know. :-(
-
-Anyway, this is a first attempt at building something usefull, 
+Anyway, this is the second attempt at building something usefull, 
 easy and efficient (or fast).  Feedback B<very> welcome.
 
 =head1 TODO
@@ -258,11 +286,6 @@ easy and efficient (or fast).  Feedback B<very> welcome.
 Currently, the language file is only loaded once per child, then
 cached forever after.  Last modification time should be checked
 so a Dictionnary file modifications would reflect instantly. 
-
-I think this could be more convenient to implement it as a tied
-hash, that way one module could populate a given hash with defaults
-values in the case that Apache::Language isn't avaliable.  This with
-no more modification to the code than that.
 
 =head1 SEE ALSO
 
