@@ -4,7 +4,6 @@ Language.pod
 Language/Constants.pm
 Language/DBI.pm
 Language/PlainFile.pm
-Language/SW.pm
 MANIFEST
 Makefile.PL
 README

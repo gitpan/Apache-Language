@@ -12,7 +12,7 @@ use Data::Dumper;
 use I18N::LangTags qw(is_language_tag similarity_language_tag same_language_tag);
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.07';
+$VERSION = '0.09';
 $DEBUG=0;
 
 $DEFAULT_HANDLER =  __PACKAGE__ . "::PlainFile";
@@ -52,7 +52,7 @@ sub NEXTKEY {
     }
 
 sub FETCH {
-    my ($self, $key) = @_;
+    my ($self, $key, $test) = @_;
     warning("FETCH($key)",L_TRACE);
     $key =~ m|^([^/]*)(/(.*))?$|;
     my $value;
@@ -70,7 +70,9 @@ sub FETCH {
         last if $value;
         }
     return $value if $value;
-    return "[<I><SMALL>No Language definition found for $key</SMALL></I>]";
+
+    #we didn't find any match.  If testing, return undef, else return at least the key
+	return $test ? undef : $key;
     }
 
 sub STORE {
@@ -92,7 +94,8 @@ sub EXISTS {
     my ($self, $key) = @_;
     warning("EXISTS($key)",L_TRACE);
     $key =~ m|^([^/]*)(/(.*))?$|;
-    return FETCH($self,$key);
+    #call FETCH in test mode just to know if it could be fetched
+    return FETCH($self,$key,'test');
     }
 
 sub TIEHASH {
